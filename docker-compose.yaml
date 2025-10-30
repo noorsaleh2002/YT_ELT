@@ -44,11 +44,11 @@
 #
 # Feel free to modify this file to suit your needs.
 ---
-x-airflow-common:
+x-airflow-common:    #this airflow command related to common variables that will be available to all airflow containers (web server abd scheduler)
   &airflow-common
   # Use custom image that builds on top of default airflow image (currently; Default: apache/airflow:2.9.2)
   # Image stored on Dockerhub
-  image: ${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}
+  image: ${DOCKERHUB_NAMESPACE}/${DOCKERHUB_REPOSITORY}:${IMAGE_TAG} # here is the image that we create , using the .env file
   # Use the .env file to read the connection params and variables - SWITCH THIS OFF WHEN USING GITHUB ACTIONS
   env_file:
     - .env
@@ -57,8 +57,10 @@ x-airflow-common:
     # Set executor to CeleryExecutor
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     # Use SQLAlchemy to connect to Airflow's metadata Postgres database using the psycopg2 driver
+    #this url is for the metadata database
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${METADATA_DATABASE_USERNAME}:${METADATA_DATABASE_PASSWORD}@${POSTGRES_CONN_HOST}:${POSTGRES_CONN_PORT}/${METADATA_DATABASE_NAME}
     # Postgres database backend for storing task results executed by workers
+    #this url for the backend which stores results executed by the workers
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://${CELERY_BACKEND_USERNAME}:${CELERY_BACKEND_PASSWORD}@${POSTGRES_CONN_HOST}:${POSTGRES_CONN_PORT}/${CELERY_BACKEND_NAME}
     # URL for the Redis message broker - handles the communication and task distribution between the scheduler and workers
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
@@ -80,6 +82,10 @@ x-airflow-common:
     # Connection can be written as URI:
     # AIRFLOW_CONN_{CONN_ID}='my-conn-type://login:password@host:port/schema?param1=val1&param2=val2'
     # Connection to an external PostgreSQL database needed to store the data from the ELT process
+
+    #these does not come with the file docker compse and must be added here
+    #the fist one being the airflow connection to the database that will store the youtube data API 
+
     AIRFLOW_CONN_POSTGRES_DB_YT_ELT: 'postgresql://${ELT_DATABASE_USERNAME}:${ELT_DATABASE_PASSWORD}@${POSTGRES_CONN_HOST}:${POSTGRES_CONN_PORT}/${ELT_DATABASE_NAME}'
     # Variables can be written as follows:
     # AIRFLOW_VAR_{VARIABLE_NAME}
@@ -91,7 +97,7 @@ x-airflow-common:
     ELT_DATABASE_PASSWORD: ${ELT_DATABASE_PASSWORD}
     POSTGRES_CONN_HOST: ${POSTGRES_CONN_HOST}
     POSTGRES_CONN_PORT: ${POSTGRES_CONN_PORT}
-  volumes:
+  volumes: #volumes are powerfull tool in docker , and they are primarily used for data persistence,when the docker container stoped or remeved the data is stored
     - ./config:/opt/airflow/config
     - ./dags:/opt/airflow/dags
     - ./data:/opt/airflow/data
@@ -140,9 +146,9 @@ services:
       interval: 10s
       retries: 5
       start_period: 5s
-    restart: always
+    restart: always #we are saying that if the container stops it will always be restarted automatically 
  
-  redis:
+  redis:   #this is to forward meddages from the scheduler to the worker
     # Redis is limited to 7.2-bookworm due to licencing change
     # https://redis.io/blog/redis-adopts-dual-source-available-licensing/
     image: redis:7.2-bookworm
@@ -155,9 +161,9 @@ services:
       timeout: 30s
       retries: 50
       start_period: 30s
-    restart: always
+    restart: always  
  
-  airflow-webserver:
+  airflow-webserver: #this is the ui
     <<: *airflow-common
     command: webserver
     container_name: airflow-webserver
@@ -191,7 +197,7 @@ services:
       airflow-init:
         condition: service_completed_successfully
  
-  airflow-worker:
+  airflow-worker: #here we have one worker , but we can have multible worker 
     <<: *airflow-common
     command: celery worker
     container_name: airflow-worker
@@ -287,7 +293,7 @@ services:
       <<: *airflow-common-env
       _AIRFLOW_DB_MIGRATE: 'true'
       _AIRFLOW_WWW_USER_CREATE: 'true'
-      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_WWW_USER_USERNAME}
+      _AIRFLOW_WWW_USER_USERNAME: ${AIRFLOW_WWW_USER_USERNAME} #those to access the airflow ui
       _AIRFLOW_WWW_USER_PASSWORD: ${AIRFLOW_WWW_USER_PASSWORD}
     user: "0:0"
     volumes:

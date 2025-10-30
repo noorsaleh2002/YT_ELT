@@ -1,24 +1,27 @@
 import requests
 import json
-import os
+# import os
 from dotenv import load_dotenv
+from airflow.decorators import task
+from airflow.models import Variable
 from datetime import date
-load_dotenv(dotenv_path="./.env")
+# load_dotenv(dotenv_path="./.env")
 
-API_KEY = os.getenv("API_KEY")
-CHANNEL_HANDLE = os.getenv("CHANNEL_HANDLE")
+API_KEY = Variable.get("API_KEY")
+CHANNEL_HANDLE = Variable.get("CHANNEL_HANDLE")
 MAX_RESULTS = 50
 
 if not API_KEY or not CHANNEL_HANDLE:
     raise ValueError("Missing API_KEY or CHANNEL_HANDLE in .env file")
 
+@task
 def get_playlist_id():
     url = f"https://youtube.googleapis.com/youtube/v3/channels?part=contentDetails&forHandle={CHANNEL_HANDLE}&key={API_KEY}"
     response = requests.get(url)
     response.raise_for_status()
     data = response.json()
     return data["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
-
+@task
 def get_video_ids(playlist_id):
     video_ids = []
     page_token = None
@@ -33,7 +36,7 @@ def get_video_ids(playlist_id):
         if not page_token:
             break
     return video_ids
-
+@task
 def extract_video_data(video_ids):
     extracted_data = []
 
@@ -79,7 +82,7 @@ def extract_video_data(video_ids):
 
     except requests.exceptions.RequestException as e:
         raise e
-
+@task
 def save_to_json(extracted_data):
     file_path=f"./data/YT_data_{date.today()}.json"
     #using the context manager : with 
@@ -91,10 +94,10 @@ def save_to_json(extracted_data):
 
 
 
-if __name__ == "__main__":
-    playlist_id = get_playlist_id()
-    video_ids = get_video_ids(playlist_id)
-    videos_data = extract_video_data(video_ids)
-    save_to_json(videos_data)
+# if __name__ == "__main__":
+#     playlist_id = get_playlist_id()
+#     video_ids = get_video_ids(playlist_id)
+#     videos_data = extract_video_data(video_ids)
+#     save_to_json(videos_data)
     
  
