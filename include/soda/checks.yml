@@ -1,0 +1,24 @@
+#cheak it there are null values , for the video id col , 
+#  --There is should not be any becuse it is primary key
+#check for duplicates which again should not be the case for the video_id col
+#ensure that each video , the views count is less than or qual to the number of likes + the comments
+
+#follow the documentation how this work from the examples: ..
+
+checks for yt_api:
+  - missing_count("Video_ID") = 0
+  - duplicate_count("Video_ID") = 0
+
+  - likes_count_greater_than_vid_views = 0:
+      name: Check for Like_Count greater than Video_Views
+      likes_count_greater_than_vid_views query: |
+          SELECT COUNT(*)
+          FROM yt_api
+          WHERE "Likes_Count" > "Video_Views"
+
+  - comments_count_greater_than_vid_views = 0:
+      name: Check for Comments_Count greater than Video_Views
+      comments_count_greater_than_vid_views query: |
+        SELECT COUNT(*)
+        FROM yt_api
+        WHERE "Comments_Count" > "Video_Views"

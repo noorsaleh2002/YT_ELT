@@ -60,7 +60,7 @@ def core_table():
         rows = cur.fetchall()
         
         for row in rows:
-            current_video_ids.add(row["video_id"])
+            current_video_ids.add(row["Video_ID"])
         
         for row in rows:
             if len(table_ids) == 0:
