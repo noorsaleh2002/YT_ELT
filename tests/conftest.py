@@ -2,7 +2,8 @@
 import pytest
 from unittest import mock
 from airflow.models import Variable,Connection,DagBag
-
+import os
+import psycopg2
 #this function is a fixtrue and will be used to provide the input data for the main test
 
 @pytest.fixture
@@ -37,3 +38,40 @@ def mock_postgres_conn_vars():
 @pytest.fixture
 def dagbag():
     yield DagBag()
+
+#integration test
+#here we would want to test the transform data , which we create using the python funtions is updated correctly to the database
+#we wukk aim to use real credentials for integration testing
+
+@pytest.fixture
+def airflow_variable():
+    def get_airflow_varialbe(variable_name):
+        env_var=f"AIRFLOW_VAR_{variable_name.upper()}"
+        return os.getenv(env_var) #gets the string variable defined and makes sure it is all in caps and finally we are retrieving the value from the environment
+    return get_airflow_varialbe
+
+
+ #get the airflow enviroment variables using the Os.getenv function where we have the following variables .
+@pytest.fixture
+def real_postgres_connection():
+    dbname = os.getenv("ELT_DATABASE_NAME")
+    user = os.getenv("ELT_DATABASE_USERNAME")
+    password = os.getenv("ELT_DATABASE_PASSWORD")
+    host = os.getenv("POSTGRES_CONN_HOST")
+    port = os.getenv("POSTGRES_CONN_PORT")
+
+    conn = None
+    try:
+        conn = psycopg2.connect(
+            dbname=dbname, 
+            user=user, 
+            password=password, 
+            host=host, 
+            port=port
+        )
+        yield conn
+    except psycopg2.Error as e:
+        pytest.fail(f"Failed to connect to the database: {e}")
+    finally:
+        if conn:
+            conn.close()
